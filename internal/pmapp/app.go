@@ -44,9 +44,9 @@ type Engine interface {
 	Run(Params, Config) int
 }
 
-type unimplementedEngine struct{}
+type stubEngine struct{}
 
-func (unimplementedEngine) Run(params Params, _ Config) int {
+func (stubEngine) Run(params Params, _ Config) int {
 	if params.RunScript == "quit()" && len(params.Pages) == 0 {
 		return 0
 	}
@@ -54,7 +54,7 @@ func (unimplementedEngine) Run(params Params, _ Config) int {
 }
 
 func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
-	return Run(args, stdin, stdout, stderr, unimplementedEngine{})
+	return Run(args, stdin, stdout, stderr, stubEngine{})
 }
 
 func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, engine Engine) error {

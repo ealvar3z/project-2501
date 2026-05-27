@@ -9,7 +9,7 @@ let a = new Image(undefined, 1);
  * Note: this matches neither Blink nor Gecko.
  * In particular, Blink converts the undefined into 0 because of the
  * non-optional 1 after it, while Gecko just ignores the 1.
- * Blink behavior does make some sense, but it seems unimportant to match
+ * Blink behavior does make some sense, but it does not matter to match
  * it when there's no agreement anyway, and I can't find anything about
  * this in WebIDL either.
  */
