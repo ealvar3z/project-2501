@@ -1,0 +1,10 @@
+<!doctype html>
+<title>Test template</title>
+<div id=x>Fail</div>
+<script src=asserts.js></script>
+<script>
+assertEquals(new Intl.PluralRules().resolvedOptions().locale, "en-US");
+assertThrows(() => Intl.PluralRules(), TypeError);
+assertEquals(Intl.NumberFormat().format("1"), "1");
+document.getElementById("x").textContent = "Success";
+</script>

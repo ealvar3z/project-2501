@@ -1,0 +1,31 @@
+<!doctype html>
+<title>onclick setter/getter</title>
+<link href=utf16-bom.css rel=stylesheet>
+<div id=x>Fail</div>
+<script src=asserts.js></script>
+<script type=module>
+const x = document.getElementById("x");
+{
+	const res = await fetch("/utf16-bom.css");
+	const s = await res.text();
+	assertEquals(window.getComputedStyle(x).textAlign, "right");
+	assertEquals(s.length, 53);
+	x.style.textAlign = "left";
+	assertInstanceof(new Response().headers, Headers);
+}
+{
+	const file = new File(["test"], "name");
+	const req = new Request("/headers", {method: "POST", body: file});
+	const res = await fetch(req);
+	const s = await res.text();
+	const ss = s.split('\n');
+	const cl = ss.find(x => x.startsWith("content-length"));
+	assertEquals(cl, "content-length: 4");
+	const ua = ss.find(x => x.startsWith("user-agent"));
+	assertEquals(ua, "user-agent: pm");
+}
+{
+	await assertThrowsAsync(() => fetch("file:///tmp/should-throw"), TypeError);
+}
+x.textContent = "Success";
+</script>

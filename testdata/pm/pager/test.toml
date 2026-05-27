@@ -1,0 +1,34 @@
+siteconf.test = {
+	host = "blah",
+	default-headers = {
+		User-Agent = "test"
+	}
+}
+
+display = {
+	format-mode = ["italic"],
+	color-mode = "auto"
+}
+
+[buffer]
+history = false
+
+[external]
+mime-types = "mime.types"
+auto-mailcap = "mailcap"
+
+  [[siteconf]] # test
+ host = 'example\.org' # test
+default-headers = { # test
+	a = "b", # comment
+	c = "d", # trailing comma
+} # test
+cookie = true # test
+
+
+[cmd.custom]
+a = '() => console.log("test")'
+b = '() => console.log("Custom command test success")'
+
+[page]
+a = 'custom.b'

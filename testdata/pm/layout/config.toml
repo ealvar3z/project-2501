@@ -1,0 +1,16 @@
+[display]
+columns = 80
+lines = 24
+pixels-per-column = 9
+pixels-per-line = 18
+force-columns = true
+force-lines = true
+force-pixels-per-column = true
+force-pixels-per-line = true
+color-mode = 'true-color'
+format-mode = ["bold", "italic", "underline", "reverse", "strike"]
+
+[buffer]
+images = true
+history = false
+scripting = 'app'

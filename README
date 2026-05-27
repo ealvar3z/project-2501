@@ -1,0 +1,16 @@
+# Project 2501 - 'pm' (Puppet Master)
+
+A fast, keyboard-first TUI web browser that slips through the noise and pulls the signal. Inspired by: chawan, and vi.
+
+Tech Stack
+--------
+
+Go (highest compatible version w/ 9front)
+modernc.org/quickjs (quickjs lib)
+charmbracelet/bubbletea (tui lib)
+golang.org/x/net/html (html parser)
+tdewolff/parse/css (css parser)
+rsc.io/script (script-based test cases)
+golang.org/x/tools/txtar (trivial text-based file archive format)
+spf13/cobra (cli)
+spf13/viper (config)

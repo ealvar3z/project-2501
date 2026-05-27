@@ -1,0 +1,3 @@
+env PM_BROWSER=pm
+echo $PM_BROWSER
+stdout '^pm$'

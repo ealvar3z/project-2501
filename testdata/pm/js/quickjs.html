@@ -1,0 +1,49 @@
+<!doctype html>
+<title>QuickJS tests</title>
+<div id=x>Fail</div>
+<script src=asserts.js></script>
+<script>
+function testNumberLiterals() {
+    assertEquals(0.1.a, undefined);
+    assertEquals(0x1.a, undefined);
+    assertEquals(0b1.a, undefined);
+    assertEquals(01.a, undefined);
+    assertEquals(0o1.a, undefined);
+    assertThrows('0.a', SyntaxError);
+}
+
+function testArrayBuffer() {
+	/* https://github.com/bellard/quickjs/issues/478 */
+	const rab = new ArrayBuffer(10, {maxByteLength: 10});
+	const src = new Uint8Array(rab, 0);
+	const EvilConstructor = new Proxy(function() {}, {
+	    get: function(target, prop, receiver) {
+		if (prop === 'prototype') {
+		    rab.resize(0);
+		    return Uint8Array.prototype;
+		}
+		return Reflect.get(target, prop, receiver);
+	    }
+	});
+	Reflect.construct(Uint8Array, [src], EvilConstructor);
+}
+
+function testDate() {
+	/* regression test for sandboxing */
+	new Date();
+}
+
+function testRegExp() {
+	/a/.test("");
+	const o = /x/g;
+	Object.defineProperty(o, "flags", {get: undefined});
+	"".replace(o);
+}
+
+testNumberLiterals();
+testArrayBuffer();
+testDate();
+testRegExp();
+
+document.getElementById("x").textContent = "Success";
+</script>

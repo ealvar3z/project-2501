@@ -1,0 +1,42 @@
+<!doctype html>
+<style>
+* { font-family: monospace,monospace }
+#y::before { color: blue }
+#y::marker { color: green }
+#y:first-child { text-align: right }
+@media (grid: 1) { #y { background: green } }
+</style>
+<title>Style test</title>
+<div id=x>Fail
+<div id=y style="color: red; display: inline; margin-left: 1ch">test</div>
+</div>
+<script src=asserts.js></script>
+<script>
+const y = document.getElementById("y");
+assertEquals(y.style.cssText, "color: red; display: inline; margin-left: 1ch;");
+assertEquals(window.getComputedStyle(y).cssText, "");
+assertEquals(window.getComputedStyle(y, "::before").color, "rgb(0, 0, 255)");
+/* note: Gecko fails the following case */
+assertEquals(window.getComputedStyle(y, "::bEfOre").color, "rgb(0, 0, 255)");
+assertEquals(window.getComputedStyle(y, "::marker").color, "rgb(0, 128, 0)");
+assertEquals(window.getComputedStyle(y, ":marker").color, "");
+assertEquals(window.getComputedStyle(y, "::").color, "");
+assertEquals(window.getComputedStyle(y, "").color, "rgb(255, 0, 0)");
+assertEquals(window.getComputedStyle(y, "").textAlign, "right");
+if (window.matchMedia("(grid: 1)").matches) {
+	const charSize = parseInt(window.getComputedStyle(y).marginLeft);
+	assertEquals(y.getBoundingClientRect().width, charSize * 4);
+	assertEquals(y.getClientRects().length, 1);
+}
+y.style.marginRight = "1px";
+assertEquals(window.getComputedStyle(y).marginRight, "1px");
+y.style.marginRight = "1%";
+assertEquals(window.getComputedStyle(y).marginRight, "1%");
+y.style.marginRight = "calc(calc(1% - 2px) + 1px)";
+assertEquals(window.getComputedStyle(y).marginRight, "calc(1% - 1px)");
+y.remove();
+assertEquals(window.getComputedStyle(y, "").textAlign, "");
+y.style.textAlign = "center";
+assertEquals(window.getComputedStyle(y, "").textAlign, "");
+document.getElementById("x").textContent = "Success";
+</script>

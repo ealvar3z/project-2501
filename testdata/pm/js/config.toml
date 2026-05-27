@@ -1,0 +1,20 @@
+[buffer]
+history = false
+
+[[siteconf]]
+url = 'file:///.*'
+scripting = true
+
+[[siteconf]]
+url = 'file:///.*\.app\.html'
+scripting = 'app'
+
+[display]
+columns = 80
+lines = 24
+pixels-per-column = 10
+pixels-per-line = 20
+force-columns = true
+force-lines = true
+force-pixels-per-column = true
+force-pixels-per-line = true

@@ -1,0 +1,71 @@
+<!doctype html>
+<title>onclick setter/getter</title>
+<div id=x>Fail</div>
+<script src=asserts.js></script>
+<script>
+const x = new XMLHttpRequest();
+assert(x.onreadystatechange === null);
+let changed = false;
+function myFunction(event) {
+	changed = true;
+	assert(!event.bubbles);
+	assert(!event.cancelable);
+	assert(event.isTrusted);
+}
+x.onreadystatechange = myFunction;
+assertEquals(x.status, 0);
+assertEquals(myFunction, x.onreadystatechange);
+assertEquals(x.readyState, XMLHttpRequest.UNSENT);
+assertEquals(x.UNSENT, XMLHttpRequest.UNSENT);
+x.open("GET", "ping", false);
+assertThrows(() => x.responseType = 'document', DOMException);
+x.overrideMimeType("text/plain");
+x.send();
+assertThrows(() => x.overrideMimeType("text/plain"), DOMException);
+assertEquals(x.readyState, XMLHttpRequest.DONE);
+assert(changed);
+changed = false;
+x.onreadystatechange = function() {
+	if (x.readyState === XMLHttpRequest.DONE) {
+		x.response;
+		x.response;
+		assertEquals(JSON.stringify(x.response), '{"test":"hi world"}');
+	}
+}
+x.open("GET", "json", true, undefined, undefined);
+x.responseType = "json";
+x.withCredentials = true;
+x.send();
+assertThrows(() => x.withCredentials = true, DOMException);
+let y = new XMLHttpRequest();
+y.onreadystatechange = function() {
+	if (y.readyState === XMLHttpRequest.DONE) {
+		assertEquals(y.getAllResponseHeaders(), `content-length: 4\r
+content-type: text/html\r
+header-1: a\r
+header-2: b\r
+header_four: d\r
+_header-3: c\r
+_header-333: c\r\n`);
+	}
+}
+y.open("GET", "headers.http", false);
+y.send()
+let z = new XMLHttpRequest();
+z.onreadystatechange = function() {
+	if (z.readyState != XMLHttpRequest.DONE)
+		return
+	function assertHeaderEquals(name, value) {
+		const header = z.response.split('\n')
+			.find(x => x.startsWith(name + ':'));
+		assertEquals(header, name + ': ' + value);
+	}
+	assertHeaderEquals("authorization",
+		"Basic Y2hhLXRlc3QtdXNlckA6Y2hhLXRlc3QtcGFzczo=");
+	assertHeaderEquals("referer", window.origin);
+}
+z.open("GET", "headers", false, "pm-test-user@", "pm-test-pass:");
+z.withCredentials = true;
+z.send()
+document.getElementById("x").textContent = "Success";
+</script>
