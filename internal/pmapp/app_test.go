@@ -2,6 +2,7 @@ package pmapp
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -84,5 +85,19 @@ func TestHelpAndVersion(t *testing.T) {
 		if stdout.Len() == 0 {
 			t.Fatalf("Run(%v) wrote no stdout", args)
 		}
+	}
+}
+
+func TestMain2ReportsNotImplementedForMissingEngine(t *testing.T) {
+	err := main2(Runtime{}, []string{"-r", "notQuit()"}, bytes.NewBuffer(nil), &bytes.Buffer{}, &bytes.Buffer{}, nil)
+	if !errors.Is(err, errNotImplemented) {
+		t.Fatalf("main2 error = %v, want not-implemented", err)
+	}
+}
+
+func TestRunReportsNotImplementedForStubEnginePageLoad(t *testing.T) {
+	err := Run([]string{"https://example.test"}, bytes.NewBuffer(nil), &bytes.Buffer{}, &bytes.Buffer{}, stubEngine{})
+	if !errors.Is(err, errNotImplemented) {
+		t.Fatalf("Run error = %v, want not-implemented", err)
 	}
 }

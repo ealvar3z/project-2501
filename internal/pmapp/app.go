@@ -16,6 +16,80 @@ const (
 	VersionBase = "Puppet Master browser v0.1-dev"
 )
 
+const (
+	debug       = false
+	sandboxMode = "not sandboxed"
+	pollMode    = "unknown poll"
+)
+
+var PMVersionStr = func() string {
+	s := VersionBase + " ("
+	if debug {
+		s += "debug"
+	} else {
+		s += "release"
+	}
+	s += ", "
+	s += sandboxMode
+	s += ", "
+	s += pollMode
+	s += ")\n"
+	return s
+}()
+
+var PMVersionStrLong = func() string {
+	s := VersionBase + " ("
+	if debug {
+		s += "debug"
+	} else {
+		s += "release"
+	}
+	s += ", "
+	s += sandboxMode
+	s += ", poll uses "
+	s += pollMode
+	s += ")\n"
+	return s
+}()
+
+var errNotImplemented = errors.New("not-implemented")
+
+func die(s string) {
+	fmt.Fprintln(os.Stderr, "pm: "+s)
+	os.Exit(1)
+}
+
+func help(i int) {
+	s := PMVersionStr + `
+Usage: pm [options] [URL(s) or file(s)...]
+Options:
+    --                         Interpret all following arguments as URLs
+    -c, --css <stylesheet>     Pass stylesheet (e.g. -c 'a {color: blue}')
+    -d, --dump                 Print page to stdout
+    -h, --help                 Print this usage message
+    -o, --opt <config>         Pass config options (e.g. -o buffer.images=true)
+    -r, --run <script/file>    Run passed script or file
+    -v, --version              Print version information
+    -C, --config <file>        Override config path
+    -I, --input-charset <enc>  Specify document charset
+    -M, --monochrome           Set color-mode to 'monochrome'
+    -O, --output-charset <enc> Specify display charset
+    -T, --type <type>          Specify content mime type
+    -V, --visual               Visual startup mode
+`
+	if i == 0 {
+		_, _ = os.Stdout.WriteString(s)
+	} else {
+		_, _ = os.Stderr.WriteString(s)
+	}
+	os.Exit(i)
+}
+
+func version() {
+	_, _ = os.Stdout.WriteString(PMVersionStrLong)
+	os.Exit(0)
+}
+
 type Params struct {
 	ConfigPath    string
 	ContentType   string
@@ -44,6 +118,20 @@ type Engine interface {
 	Run(Params, Config) int
 }
 
+type Runtime struct{}
+
+func (Runtime) Free() {}
+
+type JSContext struct{}
+
+func (JSContext) Free() {}
+
+type ForkServer struct{}
+
+type FileLoader struct{}
+
+type Client struct{}
+
 type stubEngine struct{}
 
 func (stubEngine) Run(params Params, _ Config) int {
@@ -57,22 +145,103 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	return Run(args, stdin, stdout, stderr, stubEngine{})
 }
 
-func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, engine Engine) error {
-	params, showHelp, showVersion, err := parseArgs(args)
+func notImplemented(name string) error {
+	return fmt.Errorf("%w: %s", errNotImplemented, name)
+}
+
+func initAtomFactory() error {
+	return nil
+}
+
+func setupProcessEnv() error {
+	bin, err := os.Executable()
 	if err != nil {
 		return err
+	}
+	binDir := filepath.Dir(bin)
+	if err := os.Setenv("PM_BIN_DIR", binDir); err != nil {
+		return err
+	}
+	return os.Setenv("PM_LIBEXEC_DIR", filepath.Clean(filepath.Join(binDir, "..", "libexec", "pm")))
+}
+
+func newGlobalJSRuntime() (Runtime, error) {
+	return Runtime{}, nil
+}
+
+func (Runtime) newJSContext() (JSContext, error) {
+	return JSContext{}, nil
+}
+
+func openURandom() (*os.File, error) {
+	return os.Open("/dev/urandom")
+}
+
+func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, engine Engine) error {
+	return pmMain(args, stdin, stdout, stderr, engine)
+}
+
+func pmMain(args []string, stdin io.Reader, stdout, stderr io.Writer, engine Engine) error {
+	if err := initAtomFactory(); err != nil {
+		return err
+	}
+	if err := setupProcessEnv(); err != nil {
+		return err
+	}
+	rt, err := newGlobalJSRuntime()
+	if err != nil {
+		return err
+	}
+	defer rt.Free()
+	return main2(rt, args, stdin, stdout, stderr, engine)
+}
+
+func main2(rt Runtime, args []string, stdin io.Reader, stdout, stderr io.Writer, engine Engine) error {
+	jsctx, err := rt.newJSContext()
+	if err != nil {
+		return err
+	}
+	defer jsctx.Free()
+	urandom, err := openURandom()
+	if err != nil {
+		return err
+	}
+	defer urandom.Close()
+	params, config, history, handled, err := initializeStartup(args, stdin, stdout, stderr)
+	if err != nil {
+		return err
+	}
+	if handled {
+		return nil
+	}
+	if engine == nil {
+		return notImplemented("engine")
+	}
+	_ = jsctx
+	_ = history
+	code := engine.Run(params, config)
+	if code != 0 {
+		return notImplemented("browser engine")
+	}
+	return nil
+}
+
+func initializeStartup(args []string, stdin io.Reader, stdout, stderr io.Writer) (Params, Config, bool, bool, error) {
+	params, showHelp, showVersion, err := parseArgs(args)
+	if err != nil {
+		return Params{}, Config{}, false, false, err
 	}
 	if showHelp {
 		_, err := io.WriteString(stdout, usage())
-		return err
+		return Params{}, Config{}, false, true, err
 	}
 	if showVersion {
 		_, err := fmt.Fprintln(stdout, versionLong())
-		return err
+		return Params{}, Config{}, false, true, err
 	}
 	config, err := initConfig(params)
 	if err != nil {
-		return err
+		return Params{}, Config{}, false, false, err
 	}
 	history := true
 	if len(params.Pages) == 0 && isTerminal(stdin) {
@@ -80,17 +249,12 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, engine Engine
 	}
 	if len(params.Pages) == 0 && config.Headless != "true" && !params.Dump && isTerminal(stdin) {
 		_, _ = io.WriteString(stderr, usage())
-		return errors.New("missing URL or file")
+		return Params{}, Config{}, false, false, errors.New("missing URL or file")
 	}
 	if err := ensureTmpDir(config.TmpDir); err != nil {
-		return err
+		return Params{}, Config{}, false, false, err
 	}
-	_ = history
-	code := engine.Run(params, config)
-	if code != 0 {
-		return fmt.Errorf("browser engine is not implemented yet")
-	}
-	return nil
+	return params, config, history, false, nil
 }
 
 func parseArgs(args []string) (Params, bool, bool, error) {
